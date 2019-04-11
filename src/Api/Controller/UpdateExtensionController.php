@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,13 +11,14 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Access\AssertPermissionTrait;
 use Flarum\Extension\ExtensionManager;
-use Flarum\Http\Controller\ControllerInterface;
-use Illuminate\Contracts\Bus\Dispatcher;
+use Flarum\User\AssertPermissionTrait;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use Zend\Diactoros\Response\EmptyResponse;
 
-class UpdateExtensionController implements ControllerInterface
+class UpdateExtensionController implements RequestHandlerInterface
 {
     use AssertPermissionTrait;
 
@@ -36,9 +38,9 @@ class UpdateExtensionController implements ControllerInterface
     /**
      * {@inheritdoc}
      */
-    public function handle(ServerRequestInterface $request)
+    public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $this->assertAdminAndSudo($request);
+        $this->assertAdmin($request->getAttribute('actor'));
 
         $enabled = array_get($request->getParsedBody(), 'enabled');
         $name = array_get($request->getQueryParams(), 'name');
@@ -48,5 +50,7 @@ class UpdateExtensionController implements ControllerInterface
         } elseif ($enabled === false) {
             $this->extensions->disable($name);
         }
+
+        return new EmptyResponse;
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,10 +11,10 @@
 
 namespace Flarum\Event;
 
-use Flarum\Core\User;
+use Flarum\User\User;
 
 /**
- * The `PrepareUserGroups` event
+ * The `PrepareUserGroups` event.
  */
 class PrepareUserGroups
 {

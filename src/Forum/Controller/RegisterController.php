@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -11,14 +12,14 @@
 namespace Flarum\Forum\Controller;
 
 use Flarum\Api\Client;
-use Flarum\Http\AccessToken;
-use Flarum\Http\Controller\ControllerInterface;
+use Flarum\Api\Controller\CreateUserController;
 use Flarum\Http\Rememberer;
 use Flarum\Http\SessionAuthenticator;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Zend\Diactoros\Response\JsonResponse;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class RegisterController implements ControllerInterface
+class RegisterController implements RequestHandlerInterface
 {
     /**
      * @var Client
@@ -48,12 +49,11 @@ class RegisterController implements ControllerInterface
     }
 
     /**
-     * @param Request $request
-     * @return JsonResponse
+     * {@inheritdoc}
      */
-    public function handle(Request $request)
+    public function handle(Request $request): ResponseInterface
     {
-        $controller = 'Flarum\Api\Controller\CreateUserController';
+        $controller = CreateUserController::class;
         $actor = $request->getAttribute('actor');
         $body = ['data' => ['attributes' => $request->getParsedBody()]];
 

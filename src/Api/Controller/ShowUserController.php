@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,16 +11,18 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Repository\UserRepository;
+use Flarum\Api\Serializer\CurrentUserSerializer;
+use Flarum\Api\Serializer\UserSerializer;
+use Flarum\User\UserRepository;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
-class ShowUserController extends AbstractResourceController
+class ShowUserController extends AbstractShowController
 {
     /**
      * {@inheritdoc}
      */
-    public $serializer = 'Flarum\Api\Serializer\UserSerializer';
+    public $serializer = UserSerializer::class;
 
     /**
      * {@inheritdoc}
@@ -27,12 +30,12 @@ class ShowUserController extends AbstractResourceController
     public $include = ['groups'];
 
     /**
-     * @var UserRepository
+     * @var \Flarum\User\UserRepository
      */
     protected $users;
 
     /**
-     * @param UserRepository $users
+     * @param \Flarum\User\UserRepository $users
      */
     public function __construct(UserRepository $users)
     {
@@ -53,7 +56,7 @@ class ShowUserController extends AbstractResourceController
         $actor = $request->getAttribute('actor');
 
         if ($actor->id == $id) {
-            $this->serializer = 'Flarum\Api\Serializer\CurrentUserSerializer';
+            $this->serializer = CurrentUserSerializer::class;
         }
 
         return $this->users->findOrFail($id, $actor);

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,16 +11,17 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Group;
+use Flarum\Api\Serializer\ForumSerializer;
+use Flarum\Group\Group;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
-class ShowForumController extends AbstractResourceController
+class ShowForumController extends AbstractShowController
 {
     /**
      * {@inheritdoc}
      */
-    public $serializer = 'Flarum\Api\Serializer\ForumSerializer';
+    public $serializer = ForumSerializer::class;
 
     /**
      * {@inheritdoc}

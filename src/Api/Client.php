@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,12 +11,12 @@
 
 namespace Flarum\Api;
 
-use Flarum\Http\Controller\ControllerInterface;
-use Flarum\Core\User;
-use Flarum\Http\AccessToken;
-use Illuminate\Contracts\Container\Container;
 use Exception;
+use Flarum\User\User;
+use Illuminate\Contracts\Container\Container;
 use InvalidArgumentException;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Zend\Diactoros\ServerRequestFactory;
 
 class Client
@@ -34,7 +35,7 @@ class Client
      * @param Container $container
      * @param ErrorHandler $errorHandler
      */
-    public function __construct(Container $container, ErrorHandler $errorHandler)
+    public function __construct(Container $container, ErrorHandler $errorHandler = null)
     {
         $this->container = $container;
         $this->errorHandler = $errorHandler;
@@ -43,13 +44,14 @@ class Client
     /**
      * Execute the given API action class, pass the input and return its response.
      *
-     * @param string|ControllerInterface $controller
+     * @param string|RequestHandlerInterface $controller
      * @param User|null $actor
      * @param array $queryParams
      * @param array $body
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
+     * @throws Exception
      */
-    public function send($controller, $actor, array $queryParams = [], array $body = [])
+    public function send($controller, User $actor = null, array $queryParams = [], array $body = []): ResponseInterface
     {
         $request = ServerRequestFactory::fromGlobals(null, $queryParams, $body);
 
@@ -59,15 +61,31 @@ class Client
             $controller = $this->container->make($controller);
         }
 
-        if (! ($controller instanceof ControllerInterface)) {
-            throw new InvalidArgumentException('Endpoint must be an instance of '
-                . ControllerInterface::class);
+        if (! ($controller instanceof RequestHandlerInterface)) {
+            throw new InvalidArgumentException(
+                'Endpoint must be an instance of '.RequestHandlerInterface::class
+            );
         }
 
         try {
             return $controller->handle($request);
         } catch (Exception $e) {
+            if (! $this->errorHandler) {
+                throw $e;
+            }
+
             return $this->errorHandler->handle($e);
         }
+    }
+
+    /**
+     * @param ErrorHandler $errorHandler
+     * @return Client
+     */
+    public function setErrorHandler(?ErrorHandler $errorHandler): self
+    {
+        $this->errorHandler = $errorHandler;
+
+        return $this;
     }
 }

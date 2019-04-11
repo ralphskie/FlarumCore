@@ -16,6 +16,7 @@ interface MigrationRepositoryInterface
     /**
      * Get the ran migrations for the given extension.
      *
+     * @param string $extension
      * @return array
      */
     public function getRan($extension = null);
@@ -51,12 +52,4 @@ interface MigrationRepositoryInterface
      * @return bool
      */
     public function repositoryExists();
-
-    /**
-     * Set the information source to gather data.
-     *
-     * @param  string  $name
-     * @return void
-     */
-    public function setSource($name);
 }

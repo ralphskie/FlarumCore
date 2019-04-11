@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,76 +11,57 @@
 
 namespace Flarum\Install;
 
-use Flarum\Http\GenerateRouteHandlerTrait;
-use Flarum\Http\RouteCollection;
-use Flarum\Install\Prerequisite\PhpExtensions;
-use Flarum\Install\Prerequisite\PhpVersion;
-use Flarum\Install\Prerequisite\WritablePaths;
-use Flarum\Install\Prerequisite\Composite;
 use Flarum\Foundation\AbstractServiceProvider;
-use Psr\Http\Message\ServerRequestInterface;
+use Flarum\Http\RouteCollection;
+use Flarum\Http\RouteHandlerFactory;
 
 class InstallServiceProvider extends AbstractServiceProvider
 {
-    use GenerateRouteHandlerTrait;
-
     /**
      * {@inheritdoc}
      */
     public function register()
     {
-        $this->app->bind(
-            'Flarum\Install\Prerequisite\PrerequisiteInterface',
-            function () {
-                return new Composite(
-                    new PhpVersion('5.5.0'),
-                    new PhpExtensions([
-                        'dom',
-                        'fileinfo',
-                        'gd',
-                        'json',
-                        'mbstring',
-                        'openssl',
-                        'pdo_mysql',
-                    ]),
-                    new WritablePaths([
-                        public_path(),
-                        public_path('assets'),
-                        public_path('extensions'),
-                        storage_path(),
-                    ])
-                );
-            }
-        );
-
         $this->app->singleton('flarum.install.routes', function () {
-            return $this->getRoutes();
+            return new RouteCollection;
         });
 
-        $this->loadViewsFrom(__DIR__.'/../../views/install', 'flarum.install');
+        $this->app->singleton(Installation::class, function () {
+            return new Installation(
+                $this->app->basePath(),
+                $this->app->publicPath(),
+                $this->app->storagePath()
+            );
+        });
     }
 
     /**
-     * @return RouteCollection
+     * {@inheritdoc}
      */
-    protected function getRoutes()
+    public function boot()
     {
-        $routes = new RouteCollection;
+        $this->loadViewsFrom(__DIR__.'/../../views/install', 'flarum.install');
 
-        $toController = $this->getHandlerGenerator($this->app);
+        $this->populateRoutes($this->app->make('flarum.install.routes'));
+    }
+
+    /**
+     * @param RouteCollection $routes
+     */
+    protected function populateRoutes(RouteCollection $routes)
+    {
+        $route = $this->app->make(RouteHandlerFactory::class);
 
         $routes->get(
-            '/',
+            '/{path:.*}',
             'index',
-            $toController('Flarum\Install\Controller\IndexController')
+            $route->toController(Controller\IndexController::class)
         );
 
         $routes->post(
-            '/',
+            '/{path:.*}',
             'install',
-            $toController('Flarum\Install\Controller\InstallController')
+            $route->toController(Controller\InstallController::class)
         );
-
-        return $routes;
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,15 +11,12 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Access\AssertPermissionTrait;
-use Flarum\Core\Command\DeleteUser;
+use Flarum\User\Command\DeleteUser;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Psr\Http\Message\ServerRequestInterface;
 
 class DeleteUserController extends AbstractDeleteController
 {
-    use AssertPermissionTrait;
-
     /**
      * @var Dispatcher
      */
@@ -37,8 +35,6 @@ class DeleteUserController extends AbstractDeleteController
      */
     protected function delete(ServerRequestInterface $request)
     {
-        $this->assertSudo($request);
-
         $this->bus->dispatch(
             new DeleteUser(array_get($request->getQueryParams(), 'id'), $request->getAttribute('actor'))
         );

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,18 +11,20 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Search\SearchCriteria;
-use Flarum\Core\Search\User\UserSearcher;
-use Flarum\Api\UrlGenerator;
+use Flarum\Api\Serializer\UserSerializer;
+use Flarum\Http\UrlGenerator;
+use Flarum\Search\SearchCriteria;
+use Flarum\User\Exception\PermissionDeniedException;
+use Flarum\User\Search\UserSearcher;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
-class ListUsersController extends AbstractCollectionController
+class ListUsersController extends AbstractListController
 {
     /**
      * {@inheritdoc}
      */
-    public $serializer = 'Flarum\Api\Serializer\UserSerializer';
+    public $serializer = UserSerializer::class;
 
     /**
      * {@inheritdoc}
@@ -33,10 +36,10 @@ class ListUsersController extends AbstractCollectionController
      */
     public $sortFields = [
         'username',
-        'postsCount',
-        'discussionsCount',
-        'lastSeenTime',
-        'joinTime'
+        'commentCount',
+        'discussionCount',
+        'lastSeenAt',
+        'joinedAt'
     ];
 
     /**
@@ -65,6 +68,11 @@ class ListUsersController extends AbstractCollectionController
     protected function data(ServerRequestInterface $request, Document $document)
     {
         $actor = $request->getAttribute('actor');
+
+        if ($actor->cannot('viewUserList')) {
+            throw new PermissionDeniedException;
+        }
+
         $query = array_get($this->extractFilter($request), 'q');
         $sort = $this->extractSort($request);
 
@@ -77,7 +85,7 @@ class ListUsersController extends AbstractCollectionController
         $results = $this->searcher->search($criteria, $limit, $offset, $load);
 
         $document->addPaginationLinks(
-            $this->url->toRoute('users.index'),
+            $this->url->to('api')->route('users.index'),
             $request->getQueryParams(),
             $offset,
             $limit,

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,12 +11,12 @@
 
 namespace Flarum\Foundation;
 
-use Illuminate\Support\Arr;
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Str;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Foundation\Application as ApplicationContract;
 use Illuminate\Events\EventServiceProvider;
+use Illuminate\Support\Arr;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class Application extends Container implements ApplicationContract
 {
@@ -24,7 +25,7 @@ class Application extends Container implements ApplicationContract
      *
      * @var string
      */
-    const VERSION = '0.1.0-beta.4';
+    const VERSION = '0.1.0-beta.8.1';
 
     /**
      * The base path for the Flarum installation.
@@ -32,6 +33,13 @@ class Application extends Container implements ApplicationContract
      * @var string
      */
     protected $basePath;
+
+    /**
+     * The public path for the Flarum installation.
+     *
+     * @var string
+     */
+    protected $publicPath;
 
     /**
      * Indicates if the application has "booted".
@@ -86,8 +94,9 @@ class Application extends Container implements ApplicationContract
      * Create a new Flarum application instance.
      *
      * @param string|null $basePath
+     * @param string|null $publicPath
      */
-    public function __construct($basePath = null)
+    public function __construct($basePath = null, $publicPath = null)
     {
         $this->registerBaseBindings();
 
@@ -98,29 +107,10 @@ class Application extends Container implements ApplicationContract
         if ($basePath) {
             $this->setBasePath($basePath);
         }
-    }
 
-    /**
-     * Determine if Flarum has been installed.
-     *
-     * @return bool
-     */
-    public function isInstalled()
-    {
-        return $this->bound('flarum.config');
-    }
-
-    public function isUpToDate()
-    {
-        $settings = $this->make('Flarum\Settings\SettingsRepositoryInterface');
-
-        try {
-            $version = $settings->get('version');
-        } finally {
-            $isUpToDate = isset($version) && $version === $this->version();
+        if ($publicPath) {
+            $this->setPublicPath($publicPath);
         }
-
-        return $isUpToDate;
     }
 
     /**
@@ -140,7 +130,7 @@ class Application extends Container implements ApplicationContract
      */
     public function inDebugMode()
     {
-        return ! $this->isInstalled() || $this->config('debug');
+        return $this->config('debug', true);
     }
 
     /**
@@ -151,8 +141,8 @@ class Application extends Container implements ApplicationContract
      */
     public function url($path = null)
     {
-        $config = $this->isInstalled() ? $this->make('flarum.config') : [];
-        $url = array_get($config, 'url', $_SERVER['REQUEST_URI']);
+        $config = $this->make('flarum.config');
+        $url = array_get($config, 'url', array_get($_SERVER, 'REQUEST_URI'));
 
         if (is_array($url)) {
             if (isset($url[$path])) {
@@ -163,7 +153,7 @@ class Application extends Container implements ApplicationContract
         }
 
         if ($path) {
-            $url .= '/' . array_get($config, "paths.$path", $path);
+            $url .= '/'.array_get($config, "paths.$path", $path);
         }
 
         return $url;
@@ -215,6 +205,21 @@ class Application extends Container implements ApplicationContract
     }
 
     /**
+     * Set the public path for the application.
+     *
+     * @param string $publicPath
+     * @return $this
+     */
+    public function setPublicPath($publicPath)
+    {
+        $this->publicPath = rtrim($publicPath, '\/');
+
+        $this->bindPathsInContainer();
+
+        return $this;
+    }
+
+    /**
      * Bind all of the application paths in the container.
      *
      * @return void
@@ -243,7 +248,7 @@ class Application extends Container implements ApplicationContract
      */
     public function publicPath()
     {
-        return $this->basePath;
+        return $this->publicPath;
     }
 
     /**
@@ -675,21 +680,22 @@ class Application extends Container implements ApplicationContract
     public function registerCoreContainerAliases()
     {
         $aliases = [
-            'app'                  => ['Flarum\Foundation\Application', 'Illuminate\Contracts\Container\Container', 'Illuminate\Contracts\Foundation\Application'],
-            'blade.compiler'       => 'Illuminate\View\Compilers\BladeCompiler',
-            'cache'                => ['Illuminate\Cache\CacheManager', 'Illuminate\Contracts\Cache\Factory'],
-            'cache.store'          => ['Illuminate\Cache\Repository', 'Illuminate\Contracts\Cache\Repository'],
-            'config'               => ['Illuminate\Config\Repository', 'Illuminate\Contracts\Config\Repository'],
-            'db'                   => 'Illuminate\Database\DatabaseManager',
-            'events'               => ['Illuminate\Events\Dispatcher', 'Illuminate\Contracts\Events\Dispatcher'],
-            'files'                => 'Illuminate\Filesystem\Filesystem',
-            'filesystem'           => ['Illuminate\Filesystem\FilesystemManager', 'Illuminate\Contracts\Filesystem\Factory'],
-            'filesystem.disk'      => 'Illuminate\Contracts\Filesystem\Filesystem',
-            'filesystem.cloud'     => 'Illuminate\Contracts\Filesystem\Cloud',
-            'hash'                 => 'Illuminate\Contracts\Hashing\Hasher',
-            'mailer'               => ['Illuminate\Mail\Mailer', 'Illuminate\Contracts\Mail\Mailer', 'Illuminate\Contracts\Mail\MailQueue'],
-            'validator'            => ['Illuminate\Validation\Factory', 'Illuminate\Contracts\Validation\Factory'],
-            'view'                 => ['Illuminate\View\Factory', 'Illuminate\Contracts\View\Factory'],
+            'app'                  => [\Flarum\Foundation\Application::class, \Illuminate\Contracts\Container\Container::class, \Illuminate\Contracts\Foundation\Application::class,  \Psr\Container\ContainerInterface::class],
+            'blade.compiler'       => [\Illuminate\View\Compilers\BladeCompiler::class],
+            'cache'                => [\Illuminate\Cache\CacheManager::class, \Illuminate\Contracts\Cache\Factory::class],
+            'cache.store'          => [\Illuminate\Cache\Repository::class, \Illuminate\Contracts\Cache\Repository::class],
+            'config'               => [\Illuminate\Config\Repository::class, \Illuminate\Contracts\Config\Repository::class],
+            'db'                   => [\Illuminate\Database\DatabaseManager::class],
+            'db.connection'        => [\Illuminate\Database\Connection::class, \Illuminate\Database\ConnectionInterface::class],
+            'events'               => [\Illuminate\Events\Dispatcher::class, \Illuminate\Contracts\Events\Dispatcher::class],
+            'files'                => [\Illuminate\Filesystem\Filesystem::class],
+            'filesystem'           => [\Illuminate\Filesystem\FilesystemManager::class, \Illuminate\Contracts\Filesystem\Factory::class],
+            'filesystem.disk'      => [\Illuminate\Contracts\Filesystem\Filesystem::class],
+            'filesystem.cloud'     => [\Illuminate\Contracts\Filesystem\Cloud::class],
+            'hash'                 => [\Illuminate\Contracts\Hashing\Hasher::class],
+            'mailer'               => [\Illuminate\Mail\Mailer::class, \Illuminate\Contracts\Mail\Mailer::class, \Illuminate\Contracts\Mail\MailQueue::class],
+            'validator'            => [\Illuminate\Validation\Factory::class, \Illuminate\Contracts\Validation\Factory::class],
+            'view'                 => [\Illuminate\View\Factory::class, \Illuminate\Contracts\View\Factory::class],
         ];
 
         foreach ($aliases as $key => $aliases) {
@@ -707,5 +713,23 @@ class Application extends Container implements ApplicationContract
         parent::flush();
 
         $this->loadedProviders = [];
+    }
+
+    /**
+     * Get the path to the cached packages.php file.
+     *
+     * @return string
+     */
+    public function getCachedPackagesPath()
+    {
+        return storage_path('app/cache/packages.php');
+    }
+
+    /**
+     * @return string
+     */
+    public function resourcePath()
+    {
+        return storage_path('resources');
     }
 }

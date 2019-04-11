@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,23 +11,11 @@
 
 namespace Flarum\Formatter;
 
-use Flarum\Event\ExtensionWasDisabled;
-use Flarum\Event\ExtensionWasEnabled;
 use Flarum\Foundation\AbstractServiceProvider;
 use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\Events\Dispatcher;
 
 class FormatterServiceProvider extends AbstractServiceProvider
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function boot(Dispatcher $events)
-    {
-        $events->listen(ExtensionWasEnabled::class, [$this, 'flushFormatter']);
-        $events->listen(ExtensionWasDisabled::class, [$this, 'flushFormatter']);
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -40,11 +29,6 @@ class FormatterServiceProvider extends AbstractServiceProvider
             );
         });
 
-        $this->app->alias('flarum.formatter', 'Flarum\Formatter\Formatter');
-    }
-
-    public function flushFormatter()
-    {
-        $this->app->make('flarum.formatter')->flush();
+        $this->app->alias('flarum.formatter', Formatter::class);
     }
 }

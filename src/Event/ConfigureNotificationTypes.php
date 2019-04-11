@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,7 +11,7 @@
 
 namespace Flarum\Event;
 
-use Flarum\Core\Notification\BlueprintInterface;
+use Flarum\Notification\Blueprint\BlueprintInterface;
 use InvalidArgumentException;
 use ReflectionClass;
 
@@ -44,8 +45,9 @@ class ConfigureNotificationTypes
     public function add($blueprint, $serializer, $enabledByDefault = [])
     {
         if (! (new ReflectionClass($blueprint))->implementsInterface(BlueprintInterface::class)) {
-            throw new InvalidArgumentException('Notification blueprint ' . $blueprint
-                . ' must implement '.BlueprintInterface::class);
+            throw new InvalidArgumentException(
+                'Notification blueprint '.$blueprint.' must implement '.BlueprintInterface::class
+            );
         }
 
         $this->blueprints[$blueprint] = $enabledByDefault;

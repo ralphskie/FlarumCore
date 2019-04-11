@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -92,7 +93,7 @@ class RouteCollection
             $parts = $this->reverse[$name][0];
             array_walk($parts, [$this, 'fixPathPart'], $parameters);
 
-            return '/' . ltrim(implode('', $parts), '/');
+            return '/'.ltrim(implode('', $parts), '/');
         }
 
         throw new \RuntimeException("Route $name not found");

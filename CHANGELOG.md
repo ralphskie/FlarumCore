@@ -1,129 +1,50 @@
-# Change Log
-All notable changes to Flarum and its bundled extensions will be documented in this file.
-This project adheres to [Semantic Versioning](http://semver.org/).
+# Changelog
 
 ## Unreleased
+
 ### Added
-- Allow social auth extensions to upload an avatar via URL for new users
-- Improve security by using HTTP-only cookie + CSRF token for API authentication
-- Require user to re-enter password after 30 mins when performing sensitive/destructive actions
-- Add `onhide` hook to Modal component
-- i18n: Extract some leftover hardcoded strings
+- New `hasPermission()` helper method for `Group` objects ([9684fbc](https://github.com/flarum/core/commit/9684fbc4da07d32aa322d9228302a23418412cb9))
+- Expose supported mail drivers in IoC container ([208bad3](https://github.com/flarum/core/commit/208bad393f37bfdb76007afcddfa4b7451563e9d))
+- More test for some API endpoints ([1670590](https://github.com/flarum/core/commit/167059027e5a066d618599c90164ef1b5a509148))
+- The `Formatter\Rendering` event now receives the HTTP request instance as well ([0ab9fac](https://github.com/flarum/core/commit/0ab9facc4bd59a260575e6fc650793c663e5866a))
+- More and better validation in installer UIs
+- Check and enforce minimum MariaDB ([7ff9a90](https://github.com/flarum/core/commit/7ff9a90204923293adc520d3c02dc984845d4f9f))
+- Revert publication of assets when installation fails ([ed9591c](https://github.com/flarum/core/commit/ed9591c16fb2ea7a4be3387b805d855a53e0a7d5))
+- Benefit from Laravel's database reconnection logic in long-running tasks ([e0becd0](https://github.com/flarum/core/commit/e0becd0c7bda939048923c1f86648793feee78d5))
 
 ### Changed
-- i18n: Rename `core.lib.deleted_user_text` to `core.lib.username.deleted_text`
+- Performance: Actually cache translations on disk ([0d16fac](https://github.com/flarum/core/commit/0d16fac001bb735ee66e82871183516aeac269b7))
+- Allow per-site extenders to override extension extenders ([ba594de](https://github.com/flarum/core/commit/ba594de13a033480834d53d73f747b05fe9796f8))
+- Do not resolve objects from the IoC container (in service providers and extenders) until they are actually used
+- Replace event subscribers (that resolve objects from the IoC container) with listeners (that resolve lazily)
+- Use custom service provider for Mail component ([ac5e26a](https://github.com/flarum/core/commit/ac5e26a254d89e21bd4c115b6cbd40338e2e4b4b))
+- Update to Laravel 5.7, revert custom logic for building database index names
+- Refactored installer, extracted Installation class and pipeline for reuse in CLI and web installers ([790d5be](https://github.com/flarum/core/commit/790d5beee5e283178716bc8f9901c758d9e5b6a0))
+- Use whitelist for enabling pre-installed extensions during installation ([4585f03](https://github.com/flarum/core/commit/4585f03ee356c92942fbc2ae8c683c651b473954))
+- Update minimum MySQL version ([7ff9a90](https://github.com/flarum/core/commit/7ff9a90204923293adc520d3c02dc984845d4f9f))
 
 ### Fixed
-- Fix error when sorting discussions by "oldest" (#627)
-- Fix composer preview button on mobile (#196)
-- Enable "Start a Discussion" button if global permissions are restricted but tag-specific permissions are granted (#640)
-- Fix crash when loading notifications in some instances
-- Improve composer appearance/usability on mobile
-- Show "reply" action in discussion menu on mobile
-- Fix some issues with dropdown positioning
-- Various user interface tweaks
+- Signing up via OAuth providers was broken ([67f9375](https://github.com/flarum/core/commit/67f9375d4745add194ae3249d526197c32fd5461))
+- Group badges were overlapping ([16eb1fa](https://github.com/flarum/core/commit/16eb1fa63b6d7b80ec30c24c0e406a2b7ab09934))
+- API: Endpoint for uninstalling extensions returned an error ([c761802](https://github.com/flarum/core/commit/c76180290056ddbab67baf5ede814fcedf1dcf14))
+- Documentation links in installer were outdated ([b58380e](https://github.com/flarum/core/commit/b58380e224ee54abdade3d0a4cc107ef5c91c9a9))
+- Event posts where counted when aggregating user posts ([671fdec](https://github.com/flarum/core/commit/671fdec8d0a092ccceb5d4d5f657d0f4287fc4c7))
+- Admins could not reset user passwords ([c67fb2d](https://github.com/flarum/core/commit/c67fb2d4b6a128c71d65dc6703310c0b62f91be2))
+- Several down migrations were invalid
+- Validation errors on reset password page resulted in HTTP 404 ([4611abe](https://github.com/flarum/core/commit/4611abe5db8b94ca3dc7bf9c447fca7c67358ee3))
+- Fix `is:unread` gambit ([e17bb0b](https://github.com/flarum/core/commit/e17bb0b4331f2c92459292195c6b7db8cde1f9f3))
 
-## [0.1.0-beta.4] - 2015-11-05
-### Added
-- Add an icon/label to the back button to indicate where it leads
-- Add "Loading..." text while the JavaScript payload is loading
+### Removed
+- `php flarum install --defaults` - this was meant to be used in our old development VM ([44c9109](https://github.com/flarum/core/commit/44c91099cd77138bb5fc29f14fb1e81a9781272d))
 
-### Fixed
-- Fix some admin actions resulting in "You do not have permission to do that"
-- Fix translation keys persisting after enabling an initial language pack
-- Fix translation `=>` references not being parsed in some cases
-
-## [0.1.0-beta.3] - 2015-11-03
-### Architecture improvements
-- **Composer-driven extension architecture.** All extensions are Composer packages installable via Packagist.
-- **Backend codebase & API refactoring.** Classes, namespaces, and events systematically tidied up.
-
-### Improved internationalization
-> A huge thanks to @dcsjapan for the countless hours he put in to make this stuff happen. You're amazing!
-
-- New systematic translation key naming scheme.
-- Make many hardcoded strings translatable, including administration UI and validation messages.
-- More powerful pluralization via use of Symfony's Translation component instead of a proprietary one.
-
-### New moderation tools
-- **Hide/restore discussions.** Discussions can be soft-deleted by moderators or by the OP if no one has replied.
-- **Flags.** New bundled extension that allows posts to be flagged for moderator review.
-- **Approval.** New bundled extension that hides/flags new posts to be approved by the moderation team.
-- **Akismet.** New bundled extension that checks new posts for spam with Akismet.
-- **IP address logging.** IP addresses are stored with posts for use by extensions (e.g. Akismet).
-- **Flood control.** Users must wait at least ten seconds between consecutive posts.
-
-### Other features
-- **Social login.** New bundled extensions that allow users to log in with Facebook, Twitter, and GitHub.
-- **More compact post layout.** All controls are grouped over to the right.
-- **Improved permissions.** The admin Permissions page has been improved with icons and other tweaks.
-- **Improved extension management.** The admin Extensions page has a new look and is easier to use.
-- **Easier debugging.** The "oops" error message has a Debug button to inspect a failed AJAX request.
-- **Improved JavaScript minification.** Minification is done by ClosureCompiler only when debug mode is off, resulting in easier debugging and smaller production assets.
-
-### Added
-- Allow HTML tag syntax in translations (#574)
-- Add gzip/caching directives to webserver configuration (#514)
-- API to set the asset compiler's filename
-- Migration generator, available via generate:migration console command
-- Tags: Ability to set the tags page as the home page
-- `bidi` attribute for Mithril elements as a shortcut to set up bidirectional bindings
-- `route` attribute for Mithril elements as a shortcut to link to a route
-- Abstract SettingsModal component for quickly building admin config modals
-- `Model::afterSave()` API to run callback after a model instance is saved
-- Sticky: Allow permission to be configured
-- Lock: Allow permission to be configured
-- Add a third state to header icons (#500)
-- Allow faking of PATCH/DELETE methods (#502)
-- More reliable form validation and error handling
-
-### Changed
-- Rename `notification_read_time` column in discussions table to `notifications_read_time`.
-- Update to FontAwesome 4.4.0.
+## [0.1.0-beta.8.1](https://github.com/flarum/core/compare/v0.1.0-beta.8...v0.1.0-beta.8.1)
 
 ### Fixed
-- Output forum description in meta description tag (#506)
-- Allow users to edit their last post in a discussion even if it's hidden
-- Allow users to rename their discussion even if their first post is hidden
-- API links correctly include the `/api` path (#579)
-- Tags: Fix sub-tag ordering algorithm in Chrome (#325)
-- Fix several design bugs
-
-## [0.1.0-beta.2] - 2015-09-15
-### Added
-- Check prerequisites (PHP version, extensions, etc.) before installation (#364)
-- Enforce maximum title and post length through validation (#53, #338)
-- Ctrl+Enter submits posts (#276)
-- Syntax highlighting for code blocks (#248)
-- All links open in new window, receive rel=nofollow attribute (#247)
-- Default build script for extensions (#438)
-- Input validation in installer
-
-### Changed
-- Ask for admin password confirmation in installer (#405)
-- Increased some text contrasts for accessibility (#390)
-
-### Fixed
-- Discussion list did not work with non-empty database prefix (#269, #380)
-- Non-admins could not reset their password (#229)
-- Requests ending with a slash resulted in a 404 (#334)
-- In rare cases, posts did not load correctly (#295)
-- Avatars did not show up when installed in a subfolder (#291)
-- Installer crashed when views directory was not writable (#376)
-- Table prefix could not be set in web installer (#269)
-- Enabling an extension disabled all other extensions (#402)
-- Invalid custom CSS could crash the application (#400)
-- First posts could not be restored or deleted
-- Several design bugs
-- Set cookies to be HTTP-only
-- Tags: Sometimes, tags could not be dragged for reordering in the admin panel (#341)
-- Suspend: Use correct column name in when migrating database
-- Lock: Check for correct permission when displaying lock control
-- Likes: Allow liking permissions to be configured
-
-## 0.1.0-beta - 2015-08-27
-First Version
-
-[0.1.0-beta.4]: https://github.com/flarum/core/compare/v0.1.0-beta.3...v0.1.0-beta.4
-[0.1.0-beta.3]: https://github.com/flarum/core/compare/v0.1.0-beta.2...v0.1.0-beta.3
-[0.1.0-beta.2]: https://github.com/flarum/core/compare/v0.1.0-beta...v0.1.0-beta.2
+- Fix live output in `migrate:reset` command ([f591585](https://github.com/flarum/core/commit/f591585d02f8c4ff0211c5bf4413dd6baa724c05))
+- Fix search with database prefix ([7705a2b](https://github.com/flarum/core/commit/7705a2b7d751943ef9d0c7379ec34f8530b99310))
+- Fix invalid join time of admin user created by installer ([57f73c9](https://github.com/flarum/core/commit/57f73c9638eeb825f9e336ed3c443afccfd8995e))
+- Ensure InnoDB engine is used for all tables ([fb6b51b](https://github.com/flarum/core/commit/fb6b51b1cfef0af399607fe038603c8240800b2b), [6370f7e](https://github.com/flarum/core/commit/6370f7ecffa9ea7d5fb64d9551400edbc63318db))
+- Fix dropping foreign keys in `down` migrations ([57d5846](https://github.com/flarum/core/commit/57d5846b647881009d9e60f9ffca20b1bb77776e))
+- Fix discussion list scroll position not being maintained when hero is not visible ([40dc6ac](https://github.com/flarum/core/commit/40dc6ac604c2a0973356b38217aa8d09352daae5))
+- Fix empty meta description tag ([88e43cc](https://github.com/flarum/core/commit/88e43cc6940ee30d6529e9ce659471ec4fb1c474))
+- Remove empty attributes on `<html>` tag ([796b577](https://github.com/flarum/core/commit/796b57753d34d4ea741dbebcbc550b17808f6c94))

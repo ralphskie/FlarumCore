@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,23 +11,23 @@
 
 namespace Flarum\Install\Controller;
 
-use Flarum\Core\User;
-use Flarum\Http\Controller\ControllerInterface;
-use Flarum\Http\AccessToken;
 use Flarum\Http\SessionAuthenticator;
+use Flarum\Install\AdminUser;
+use Flarum\Install\DatabaseConfig;
+use Flarum\Install\Installation;
+use Flarum\Install\StepFailed;
+use Flarum\Install\ValidationFailed;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Zend\Diactoros\Response\HtmlResponse;
+use Psr\Http\Server\RequestHandlerInterface;
 use Zend\Diactoros\Response;
-use Flarum\Install\Console\InstallCommand;
-use Flarum\Install\Console\DefaultsDataProvider;
-use Symfony\Component\Console\Output\StreamOutput;
-use Symfony\Component\Console\Input\StringInput;
-use Exception;
-use DateTime;
 
-class InstallController implements ControllerInterface
+class InstallController implements RequestHandlerInterface
 {
-    protected $command;
+    /**
+     * @var Installation
+     */
+    protected $installation;
 
     /**
      * @var SessionAuthenticator
@@ -35,63 +36,94 @@ class InstallController implements ControllerInterface
 
     /**
      * InstallController constructor.
-     * @param InstallCommand $command
+     * @param Installation $installation
      * @param SessionAuthenticator $authenticator
      */
-    public function __construct(InstallCommand $command, SessionAuthenticator $authenticator)
+    public function __construct(Installation $installation, SessionAuthenticator $authenticator)
     {
-        $this->command = $command;
+        $this->installation = $installation;
         $this->authenticator = $authenticator;
     }
 
     /**
      * @param Request $request
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      */
-    public function handle(Request $request)
+    public function handle(Request $request): ResponseInterface
     {
         $input = $request->getParsedBody();
-
-        $data = new DefaultsDataProvider;
-
-        $data->setDatabaseConfiguration([
-            'driver'   => 'mysql',
-            'host'     => array_get($input, 'mysqlHost'),
-            'database' => array_get($input, 'mysqlDatabase'),
-            'username' => array_get($input, 'mysqlUsername'),
-            'password' => array_get($input, 'mysqlPassword'),
-            'prefix'   => array_get($input, 'tablePrefix'),
-        ]);
-
-        $data->setAdminUser([
-            'username'              => array_get($input, 'adminUsername'),
-            'password'              => array_get($input, 'adminPassword'),
-            'password_confirmation' => array_get($input, 'adminPasswordConfirmation'),
-            'email'                 => array_get($input, 'adminEmail'),
-        ]);
-
-        $baseUrl = rtrim((string) $request->getAttribute('originalUri'), '/');
-        $data->setBaseUrl($baseUrl);
-
-        $data->setSetting('forum_title', array_get($input, 'forumTitle'));
-        $data->setSetting('mail_from', 'noreply@' . preg_replace('/^www\./i', '', parse_url($baseUrl, PHP_URL_HOST)));
-        $data->setSetting('welcome_title', 'Welcome to ' . array_get($input, 'forumTitle'));
-
-        $body = fopen('php://temp', 'wb+');
-        $input = new StringInput('');
-        $output = new StreamOutput($body);
-
-        $this->command->setDataSource($data);
+        $baseUrl = rtrim((string) $request->getUri(), '/');
 
         try {
-            $this->command->run($input, $output);
-        } catch (Exception $e) {
-            return new HtmlResponse($e->getMessage(), 500);
+            $pipeline = $this->installation
+                ->baseUrl($baseUrl)
+                ->databaseConfig($this->makeDatabaseConfig($input))
+                ->adminUser($this->makeAdminUser($input))
+                ->settings([
+                    'forum_title' => array_get($input, 'forumTitle'),
+                    'mail_from' => 'noreply@'.preg_replace('/^www\./i', '', parse_url($baseUrl, PHP_URL_HOST)),
+                    'welcome_title' => 'Welcome to '.array_get($input, 'forumTitle'),
+                ])
+                ->build();
+        } catch (ValidationFailed $e) {
+            return new Response\HtmlResponse($e->getMessage(), 500);
+        }
+
+        try {
+            $pipeline->run();
+        } catch (StepFailed $e) {
+            return new Response\HtmlResponse($e->getPrevious()->getMessage(), 500);
         }
 
         $session = $request->getAttribute('session');
         $this->authenticator->logIn($session, 1);
 
-        return new Response($body);
+        return new Response\EmptyResponse;
+    }
+
+    private function makeDatabaseConfig(array $input): DatabaseConfig
+    {
+        $host = array_get($input, 'mysqlHost');
+        $port = 3306;
+
+        if (str_contains($host, ':')) {
+            list($host, $port) = explode(':', $host, 2);
+        }
+
+        return new DatabaseConfig(
+            'mysql',
+            $host,
+            intval($port),
+            array_get($input, 'mysqlDatabase'),
+            array_get($input, 'mysqlUsername'),
+            array_get($input, 'mysqlPassword'),
+            array_get($input, 'tablePrefix')
+        );
+    }
+
+    /**
+     * @param array $input
+     * @return AdminUser
+     * @throws ValidationFailed
+     */
+    private function makeAdminUser(array $input): AdminUser
+    {
+        return new AdminUser(
+            array_get($input, 'adminUsername'),
+            $this->getConfirmedAdminPassword($input),
+            array_get($input, 'adminEmail')
+        );
+    }
+
+    private function getConfirmedAdminPassword(array $input): string
+    {
+        $password = array_get($input, 'adminPassword');
+        $confirmation = array_get($input, 'adminPasswordConfirmation');
+
+        if ($password !== $confirmation) {
+            throw new ValidationFailed('The admin password did not match its confirmation.');
+        }
+
+        return $password;
     }
 }

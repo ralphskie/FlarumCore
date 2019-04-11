@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,50 +11,56 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Discussion;
-use Flarum\Core\Repository\DiscussionRepository;
-use Flarum\Core\Repository\PostRepository;
-use Flarum\Core\User;
+use Flarum\Api\Serializer\DiscussionSerializer;
+use Flarum\Discussion\Discussion;
+use Flarum\Discussion\DiscussionRepository;
+use Flarum\Post\PostRepository;
+use Flarum\User\User;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
-class ShowDiscussionController extends AbstractResourceController
+class ShowDiscussionController extends AbstractShowController
 {
     /**
-     * @var DiscussionRepository
+     * @var \Flarum\Discussion\DiscussionRepository
      */
     protected $discussions;
 
     /**
-     * @inheritdoc
+     * @var PostRepository
      */
-    public $serializer = 'Flarum\Api\Serializer\DiscussionSerializer';
+    protected $posts;
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
+     */
+    public $serializer = DiscussionSerializer::class;
+
+    /**
+     * {@inheritdoc}
      */
     public $include = [
         'posts',
         'posts.discussion',
         'posts.user',
         'posts.user.groups',
-        'posts.editUser',
-        'posts.hideUser'
+        'posts.editedUser',
+        'posts.hiddenUser'
     ];
 
     /**
-     * @inheritdoc
+     * {@inheritdoc}
      */
     public $optionalInclude = [
-        'startUser',
-        'lastUser',
-        'startPost',
+        'user',
+        'lastPostedUser',
+        'firstPost',
         'lastPost'
     ];
 
     /**
-     * @param \Flarum\Core\Repository\DiscussionRepository $discussions
-     * @param \Flarum\Core\Repository\PostRepository $posts
+     * @param \Flarum\Discussion\DiscussionRepository $discussions
+     * @param \Flarum\Post\PostRepository $posts
      */
     public function __construct(DiscussionRepository $discussions, PostRepository $posts)
     {
@@ -77,6 +84,10 @@ class ShowDiscussionController extends AbstractResourceController
 
             $this->includePosts($discussion, $request, $postRelationships);
         }
+
+        $discussion->load(array_filter($include, function ($relationship) {
+            return ! starts_with($relationship, 'posts');
+        }));
 
         return $discussion;
     }
@@ -107,7 +118,7 @@ class ShowDiscussionController extends AbstractResourceController
      */
     private function loadPostIds(Discussion $discussion, User $actor)
     {
-        return $discussion->postsVisibleTo($actor)->orderBy('time')->lists('id')->all();
+        return $discussion->posts()->whereVisibleTo($actor)->orderBy('created_at')->pluck('id')->all();
     }
 
     /**
@@ -159,10 +170,16 @@ class ShowDiscussionController extends AbstractResourceController
      */
     private function loadPosts($discussion, $actor, $offset, $limit, array $include)
     {
-        $query = $discussion->postsVisibleTo($actor);
+        $query = $discussion->posts()->whereVisibleTo($actor);
 
-        $query->orderBy('time')->skip($offset)->take($limit)->with($include);
+        $query->orderBy('created_at')->skip($offset)->take($limit)->with($include);
 
-        return $query->get()->all();
+        $posts = $query->get()->all();
+
+        foreach ($posts as $post) {
+            $post->discussion = $discussion;
+        }
+
+        return $posts;
     }
 }

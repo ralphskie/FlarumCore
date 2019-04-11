@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,17 +11,17 @@
 
 namespace Flarum\Event;
 
+use Flarum\Forum\Controller\FrontendController;
+
 /**
- * Configure forum routes.
- *
- * This event is fired when routes for the forum client are being registered.
+ * @deprecated
  */
 class ConfigureForumRoutes extends AbstractConfigureRoutes
 {
     /**
      * {@inheritdoc}
      */
-    public function get($url, $name, $handler = 'Flarum\Forum\Controller\ClientController')
+    public function get($url, $name, $handler = FrontendController::class)
     {
         parent::get($url, $name, $handler);
     }

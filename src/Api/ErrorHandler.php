@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -11,6 +12,7 @@
 namespace Flarum\Api;
 
 use Exception;
+use Throwable;
 use Tobscure\JsonApi\Document;
 use Tobscure\JsonApi\ErrorHandler as JsonApiErrorHandler;
 
@@ -33,8 +35,12 @@ class ErrorHandler
      * @param Exception $e
      * @return JsonApiResponse
      */
-    public function handle(Exception $e)
+    public function handle(Throwable $e)
     {
+        if (! $e instanceof Exception) {
+            $e = new Exception($e->getMessage(), $e->getCode(), $e);
+        }
+
         $response = $this->errorHandler->handle($e);
 
         $document = new Document;

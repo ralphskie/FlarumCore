@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,8 +11,8 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Access\AssertPermissionTrait;
 use Flarum\Extension\ExtensionManager;
+use Flarum\User\AssertPermissionTrait;
 use Psr\Http\Message\ServerRequestInterface;
 
 class UninstallExtensionController extends AbstractDeleteController
@@ -33,11 +34,14 @@ class UninstallExtensionController extends AbstractDeleteController
 
     protected function delete(ServerRequestInterface $request)
     {
-        $this->assertAdminAndSudo($request);
+        $this->assertAdmin($request->getAttribute('actor'));
 
         $name = array_get($request->getQueryParams(), 'name');
 
-        $this->extensions->disable($name);
+        if ($this->extensions->getExtension($name) == null) {
+            return;
+        }
+
         $this->extensions->uninstall($name);
     }
 }

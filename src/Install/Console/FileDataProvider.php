@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,13 +11,16 @@
 
 namespace Flarum\Install\Console;
 
+use Exception;
+use Flarum\Install\AdminUser;
+use Flarum\Install\DatabaseConfig;
+use Flarum\Install\Installation;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Yaml\Yaml;
-use Exception;
 
 class FileDataProvider implements DataProviderInterface
 {
-    protected $default;
+    protected $debug = false;
     protected $baseUrl = null;
     protected $databaseConfiguration = [];
     protected $adminUser = [];
@@ -24,44 +28,61 @@ class FileDataProvider implements DataProviderInterface
 
     public function __construct(InputInterface $input)
     {
-        // Get default configuration
-        $this->default = new DefaultsDataProvider();
-
         // Get configuration file path
         $configurationFile = $input->getOption('file');
 
         // Check if file exists before parsing content
         if (file_exists($configurationFile)) {
-            // Parse YAML
-            $configuration = Yaml::parse(file_get_contents($configurationFile));
+            $configurationFileContents = file_get_contents($configurationFile);
+            // Try parsing JSON
+            if (($json = json_decode($configurationFileContents, true)) !== null) {
+                //Use JSON if Valid
+                $configuration = $json;
+            } else {
+                //Else use YAML
+                $configuration = Yaml::parse($configurationFileContents);
+            }
 
             // Define configuration variables
+            $this->debug = $configuration['debug'] ?? false;
             $this->baseUrl = isset($configuration['baseUrl']) ? rtrim($configuration['baseUrl'], '/') : null;
-            $this->databaseConfiguration = isset($configuration['databaseConfiguration']) ? $configuration['databaseConfiguration'] : [];
-            $this->adminUser = isset($configuration['adminUser']) ? $configuration['adminUser'] : [];
-            $this->settings = isset($configuration['settings']) ? $configuration['settings']: [];
+            $this->databaseConfiguration = $configuration['databaseConfiguration'] ?? [];
+            $this->adminUser = $configuration['adminUser'] ?? [];
+            $this->settings = $configuration['settings'] ?? [];
         } else {
             throw new Exception('Configuration file does not exist.');
         }
     }
 
-    public function getDatabaseConfiguration()
+    public function configure(Installation $installation): Installation
     {
-        return $this->databaseConfiguration + $this->default->getDatabaseConfiguration();
+        return $installation
+            ->debugMode($this->debug)
+            ->baseUrl($this->baseUrl ?? 'http://flarum.local')
+            ->databaseConfig($this->getDatabaseConfiguration())
+            ->adminUser($this->getAdminUser())
+            ->settings($this->settings);
     }
 
-    public function getBaseUrl()
+    private function getDatabaseConfiguration(): DatabaseConfig
     {
-        return (!is_null($this->baseUrl)) ? $this->baseUrl : $this->default->getBaseUrl();
+        return new DatabaseConfig(
+            $this->databaseConfiguration['driver'] ?? 'mysql',
+            $this->databaseConfiguration['host'] ?? 'localhost',
+            $this->databaseConfiguration['port'] ?? 3306,
+            $this->databaseConfiguration['database'] ?? 'flarum',
+            $this->databaseConfiguration['username'] ?? 'root',
+            $this->databaseConfiguration['password'] ?? '',
+            $this->databaseConfiguration['prefix'] ?? ''
+        );
     }
 
-    public function getAdminUser()
+    private function getAdminUser(): AdminUser
     {
-        return $this->adminUser + $this->default->getAdminUser();
-    }
-
-    public function getSettings()
-    {
-        return $this->settings + $this->default->getSettings();
+        return new AdminUser(
+            $this->adminUser['username'] ?? 'admin',
+            $this->adminUser['password'] ?? 'password',
+            $this->adminUser['email'] ?? 'admin@example.com'
+        );
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,27 +11,26 @@
 
 namespace Flarum\Http;
 
-use DateTime;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Illuminate\Contracts\Session\Session;
 
 class SessionAuthenticator
 {
     /**
-     * @param SessionInterface $session
+     * @param Session $session
      * @param int $userId
      */
-    public function logIn(SessionInterface $session, $userId)
+    public function logIn(Session $session, $userId)
     {
-        $session->migrate();
-        $session->set('user_id', $userId);
-        $session->set('sudo_expiry', new DateTime('+30 minutes'));
+        $session->regenerate(true);
+        $session->put('user_id', $userId);
     }
 
     /**
-     * @param SessionInterface $session
+     * @param Session $session
      */
-    public function logOut(SessionInterface $session)
+    public function logOut(Session $session)
     {
         $session->invalidate();
+        $session->regenerateToken();
     }
 }

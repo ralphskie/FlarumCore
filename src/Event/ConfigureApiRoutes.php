@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -11,9 +12,7 @@
 namespace Flarum\Event;
 
 /**
- * Configure API routes.
- *
- * This event is fired when API routes are being registered.
+ * @deprecated
  */
 class ConfigureApiRoutes extends AbstractConfigureRoutes
 {

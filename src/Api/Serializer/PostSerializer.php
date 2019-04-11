@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,18 +11,18 @@
 
 namespace Flarum\Api\Serializer;
 
-use Flarum\Core\Access\Gate;
-use Flarum\Core\Post\CommentPost;
+use Flarum\Post\CommentPost;
+use Flarum\User\Gate;
 
-class PostSerializer extends PostBasicSerializer
+class PostSerializer extends BasicPostSerializer
 {
     /**
-     * @var \Flarum\Core\Access\Gate
+     * @var \Flarum\User\Gate
      */
     protected $gate;
 
     /**
-     * @param \Flarum\Core\Access\Gate $gate
+     * @param \Flarum\User\Gate $gate
      */
     public function __construct(Gate $gate)
     {
@@ -42,27 +43,29 @@ class PostSerializer extends PostBasicSerializer
         $canEdit = $gate->allows('edit', $post);
 
         if ($post instanceof CommentPost) {
-            $attributes['contentHtml'] = $post->content_html;
-
             if ($canEdit) {
                 $attributes['content'] = $post->content;
+            }
+            if ($gate->allows('viewIps', $post)) {
+                $attributes['ipAddress'] = $post->ip_address;
             }
         } else {
             $attributes['content'] = $post->content;
         }
 
-        if ($post->edit_time) {
-            $attributes['editTime'] = $this->formatDate($post->edit_time);
+        if ($post->edited_at) {
+            $attributes['editedAt'] = $this->formatDate($post->edited_at);
         }
 
-        if ($post->hide_time) {
+        if ($post->hidden_at) {
             $attributes['isHidden'] = true;
-            $attributes['hideTime'] = $this->formatDate($post->hide_time);
+            $attributes['hiddenAt'] = $this->formatDate($post->hidden_at);
         }
 
         $attributes += [
             'canEdit'   => $canEdit,
-            'canDelete' => $gate->allows('delete', $post)
+            'canDelete' => $gate->allows('delete', $post),
+            'canHide'   => $gate->allows('hide', $post)
         ];
 
         return $attributes;
@@ -73,7 +76,7 @@ class PostSerializer extends PostBasicSerializer
      */
     protected function user($post)
     {
-        return $this->hasOne($post, 'Flarum\Api\Serializer\UserSerializer');
+        return $this->hasOne($post, UserSerializer::class);
     }
 
     /**
@@ -81,22 +84,22 @@ class PostSerializer extends PostBasicSerializer
      */
     protected function discussion($post)
     {
-        return $this->hasOne($post, 'Flarum\Api\Serializer\DiscussionSerializer');
+        return $this->hasOne($post, BasicDiscussionSerializer::class);
     }
 
     /**
      * @return \Tobscure\JsonApi\Relationship
      */
-    protected function editUser($post)
+    protected function editedUser($post)
     {
-        return $this->hasOne($post, 'Flarum\Api\Serializer\UserSerializer');
+        return $this->hasOne($post, BasicUserSerializer::class);
     }
 
     /**
      * @return \Tobscure\JsonApi\Relationship
      */
-    protected function hideUser($post)
+    protected function hiddenUser($post)
     {
-        return $this->hasOne($post, 'Flarum\Api\Serializer\UserSerializer');
+        return $this->hasOne($post, BasicUserSerializer::class);
     }
 }

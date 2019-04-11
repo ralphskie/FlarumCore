@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -8,24 +9,14 @@
  * file that was distributed with this source code.
  */
 
-namespace Flarum\Core\Migration;
-
-use Flarum\Database\AbstractMigration;
+use Flarum\Database\Migration;
 use Illuminate\Database\Schema\Blueprint;
 
-class CreatePermissionsTable extends AbstractMigration
-{
-    public function up()
-    {
-        $this->schema->create('permissions', function (Blueprint $table) {
-            $table->integer('group_id')->unsigned();
-            $table->string('permission', 100);
-            $table->primary(['group_id', 'permission']);
-        });
+return Migration::createTable(
+    'permissions',
+    function (Blueprint $table) {
+        $table->integer('group_id')->unsigned();
+        $table->string('permission', 100);
+        $table->primary(['group_id', 'permission']);
     }
-
-    public function down()
-    {
-        $this->schema->drop('permissions');
-    }
-}
+);

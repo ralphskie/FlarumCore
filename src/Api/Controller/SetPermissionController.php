@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,22 +11,23 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Access\AssertPermissionTrait;
-use Flarum\Core\Permission;
-use Flarum\Http\Controller\ControllerInterface;
+use Flarum\Group\Permission;
+use Flarum\User\AssertPermissionTrait;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Zend\Diactoros\Response\EmptyResponse;
 
-class SetPermissionController implements ControllerInterface
+class SetPermissionController implements RequestHandlerInterface
 {
     use AssertPermissionTrait;
 
     /**
      * {@inheritdoc}
      */
-    public function handle(ServerRequestInterface $request)
+    public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $this->assertAdminAndSudo($request);
+        $this->assertAdmin($request->getAttribute('actor'));
 
         $body = $request->getParsedBody();
         $permission = array_get($body, 'permission');

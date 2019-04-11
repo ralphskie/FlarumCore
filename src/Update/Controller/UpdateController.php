@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -11,16 +12,17 @@
 namespace Flarum\Update\Controller;
 
 use Exception;
+use Flarum\Database\Console\MigrateCommand;
 use Flarum\Foundation\Application;
-use Flarum\Http\Controller\ControllerInterface;
-use Flarum\Update\Console\MigrateCommand;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface;
 use Symfony\Component\Console\Input\StringInput;
 use Symfony\Component\Console\Output\StreamOutput;
 use Zend\Diactoros\Response;
 use Zend\Diactoros\Response\HtmlResponse;
 
-class UpdateController implements ControllerInterface
+class UpdateController implements RequestHandlerInterface
 {
     protected $command;
 
@@ -41,9 +43,9 @@ class UpdateController implements ControllerInterface
 
     /**
      * @param Request $request
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      */
-    public function handle(Request $request)
+    public function handle(Request $request): ResponseInterface
     {
         $input = $request->getParsedBody();
 

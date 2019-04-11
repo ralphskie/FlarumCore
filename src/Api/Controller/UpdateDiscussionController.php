@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,19 +11,20 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Command\EditDiscussion;
-use Flarum\Core\Command\ReadDiscussion;
+use Flarum\Api\Serializer\DiscussionSerializer;
+use Flarum\Discussion\Command\EditDiscussion;
+use Flarum\Discussion\Command\ReadDiscussion;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Database\Eloquent\Collection;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
-class UpdateDiscussionController extends AbstractResourceController
+class UpdateDiscussionController extends AbstractShowController
 {
     /**
      * {@inheritdoc}
      */
-    public $serializer = 'Flarum\Api\Serializer\DiscussionSerializer';
+    public $serializer = DiscussionSerializer::class;
 
     /**
      * @var Dispatcher
@@ -52,7 +54,7 @@ class UpdateDiscussionController extends AbstractResourceController
 
         // TODO: Refactor the ReadDiscussion (state) command into EditDiscussion?
         // That's what extensions will do anyway.
-        if ($readNumber = array_get($data, 'attributes.readNumber')) {
+        if ($readNumber = array_get($data, 'attributes.lastReadPostNumber')) {
             $state = $this->bus->dispatch(
                 new ReadDiscussion($discussionId, $actor, $readNumber)
             );
@@ -62,7 +64,7 @@ class UpdateDiscussionController extends AbstractResourceController
 
         if ($posts = $discussion->getModifiedPosts()) {
             $posts = (new Collection($posts))->load('discussion', 'user');
-            $discussionPosts = $discussion->postsVisibleTo($actor)->orderBy('time')->lists('id')->all();
+            $discussionPosts = $discussion->posts()->whereVisibleTo($actor)->oldest()->pluck('id')->all();
 
             foreach ($discussionPosts as &$id) {
                 foreach ($posts as $post) {

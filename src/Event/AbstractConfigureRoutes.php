@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -11,7 +12,11 @@
 namespace Flarum\Event;
 
 use Flarum\Http\RouteCollection;
+use Flarum\Http\RouteHandlerFactory;
 
+/**
+ * @deprecated
+ */
 abstract class AbstractConfigureRoutes
 {
     /**
@@ -20,18 +25,18 @@ abstract class AbstractConfigureRoutes
     public $routes;
 
     /**
-     * @var callable
+     * @var RouteHandlerFactory
      */
-    protected $handlerGenerator;
+    protected $route;
 
     /**
      * @param RouteCollection $routes
-     * @param callable $handlerGenerator
+     * @param \Flarum\Http\RouteHandlerFactory $route
      */
-    public function __construct(RouteCollection $routes, callable $handlerGenerator)
+    public function __construct(RouteCollection $routes, RouteHandlerFactory $route)
     {
         $this->routes = $routes;
-        $this->handlerGenerator = $handlerGenerator;
+        $this->route = $route;
     }
 
     /**
@@ -82,15 +87,6 @@ abstract class AbstractConfigureRoutes
      */
     protected function route($method, $url, $name, $controller)
     {
-        $this->routes->$method($url, $name, $this->toController($controller));
-    }
-
-    /**
-     * @param string $controller
-     * @return callable
-     */
-    protected function toController($controller)
-    {
-        return call_user_func($this->handlerGenerator, $controller);
+        $this->routes->$method($url, $name, $this->route->toController($controller));
     }
 }

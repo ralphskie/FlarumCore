@@ -39,11 +39,14 @@
   h3 {
     margin: 0;
     line-height: 1.5em;
+    color: @secondary-color;
 
     &, input, a {
-      color: @secondary-color;
       font-size: 14px;
       font-weight: normal;
+    }
+    input, a {
+      color: inherit;
     }
     input {
       font-size: 16px;
@@ -58,6 +61,7 @@
     }
     .icon {
       font-size: 14px;
+      margin-right: 3px;
     }
   }
 }
@@ -84,14 +88,11 @@
   right: 0;
   bottom: 0;
   background: fade(@body-bg, 90%);
-  opacity: 0;
-  pointer-events: none;
+  display: none;
   border-radius: @border-radius @border-radius 0 0;
-  .transition(opacity 0.2s);
 
   &.active {
-    opacity: 1;
-    pointer-events: auto;
+    display: block;
   }
 }
 .ComposerBody-editor {
@@ -115,7 +116,7 @@
     &:not(.minimized) {
       position: absolute;
       top: 0;
-      height: 100vh !important;
+      height: 350px !important;
       padding-top: @header-height-phone;
 
       &:before {
@@ -185,15 +186,14 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+
+        h3 {
+          color: @header-control-color;
+        }
       }
     }
-    h3 {
-      &, a, input {
-        font-size: 14px;
-      }
-      input {
-        width: 100% !important;
-      }
+    h3 input {
+      width: 100% !important;
     }
   }
   .ComposerBody-editor {
@@ -286,7 +286,7 @@
     }
   }
   .ComposerBody-content {
-    margin-left: 90px;
+    margin-left: 85px;
 
     .minimized &, .fullScreen & {
       margin-left: 0;
@@ -304,10 +304,9 @@
 
 @media @desktop-up {
   .Composer:not(.fullScreen) {
-    .App--index & {
-      margin-left: 205px;
-      margin-right: -20px;
-    }
+    margin-left: 220px;
+    margin-right: -20px;
+
     .App--discussion & {
       margin-left: -20px;
       margin-right: 205px;
@@ -324,41 +323,47 @@
 // ------------------------------------
 // Text Editor
 
-.TextEditor {
-  & textarea {
-    border-radius: 0;
-    padding: 0 0 10px;
-    border: 0;
-    resize: none;
-    color: @text-color;
-    font-size: 14px;
-    line-height: 1.7;
+.TextEditor textarea {
+  border-radius: 0;
+  padding: 0 0 10px;
+  border: 0;
+  resize: none;
+  color: @text-color;
+  font-size: 14px;
+  line-height: 1.7;
 
-    &, &:focus, &[disabled] {
-      background: none;
-      border: 0;
-    }
+  &, &:focus, &[disabled] {
+    background: none;
+    border: 0;
+  }
+
+  @media @phone {
+    font-size: 16px; // minimum font-size required to prevent page zoom on focus in iOS 10
   }
 }
 .TextEditor-controls {
   margin: 0;
-  padding: 15px 0;
+  padding: 10px 0;
   list-style-type: none;
+  overflow-x: auto;
+  white-space: nowrap;
 
-  & li {
+  li {
     display: inline-block;
+    margin-right: 10px;
+  }
+}
+.TextEditor-toolbar {
+  .Button--icon {
+    width: 28px;
   }
 }
 
 @media @tablet-up {
   .TextEditor-controls {
-    margin: 0 -20px 0 -110px;
+    margin: 0 -20px 0 -105px;
     padding: 10px 20px;
     border-top: 1px solid @control-bg;
-
-    li {
-      margin-right: 5px;
-    }
 
     .fullScreen & {
       margin: 0;

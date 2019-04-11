@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,30 +11,30 @@
 
 namespace Flarum\Http\Middleware;
 
-use Flarum\Core\Guest;
-use Flarum\Core\User;
+use Flarum\User\Guest;
+use Flarum\User\User;
+use Illuminate\Contracts\Session\Session;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
-use Zend\Stratigility\MiddlewareInterface;
+use Psr\Http\Server\MiddlewareInterface as Middleware;
+use Psr\Http\Server\RequestHandlerInterface as Handler;
 
-class AuthenticateWithSession implements MiddlewareInterface
+class AuthenticateWithSession implements Middleware
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function __invoke(Request $request, Response $response, callable $out = null)
+    public function process(Request $request, Handler $handler): Response
     {
         $session = $request->getAttribute('session');
 
         $actor = $this->getActor($session);
 
+        $actor->setSession($session);
+
         $request = $request->withAttribute('actor', $actor);
 
-        return $out ? $out($request, $response) : $response;
+        return $handler->handle($request);
     }
 
-    private function getActor(SessionInterface $session)
+    private function getActor(Session $session)
     {
         $actor = User::find($session->get('user_id')) ?: new Guest;
 

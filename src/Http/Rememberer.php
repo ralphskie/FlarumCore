@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -11,23 +12,33 @@
 namespace Flarum\Http;
 
 use Dflydev\FigCookies\FigResponseCookies;
-use Dflydev\FigCookies\SetCookie;
 use Psr\Http\Message\ResponseInterface;
 
 class Rememberer
 {
-    protected $cookieName = 'flarum_remember';
+    const COOKIE_NAME = 'remember';
+
+    /**
+     * @var CookieFactory
+     */
+    protected $cookie;
+
+    /**
+     * @param CookieFactory $cookie
+     */
+    public function __construct(CookieFactory $cookie)
+    {
+        $this->cookie = $cookie;
+    }
 
     public function remember(ResponseInterface $response, AccessToken $token)
     {
-        $token->lifetime = 60 * 60 * 24 * 14;
+        $token->lifetime_seconds = 5 * 365 * 24 * 60 * 60; // 5 years
         $token->save();
 
         return FigResponseCookies::set(
             $response,
-            $this->createCookie()
-                ->withValue($token->id)
-                ->withMaxAge(14 * 24 * 60 * 60)
+            $this->cookie->make(self::COOKIE_NAME, $token->token, $token->lifetime_seconds)
         );
     }
 
@@ -42,14 +53,7 @@ class Rememberer
     {
         return FigResponseCookies::set(
             $response,
-            $this->createCookie()->withMaxAge(-2628000)
+            $this->cookie->expire(self::COOKIE_NAME)
         );
-    }
-
-    private function createCookie()
-    {
-        return SetCookie::create($this->cookieName)
-            ->withPath('/')
-            ->withHttpOnly(true);
     }
 }

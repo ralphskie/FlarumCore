@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,7 +11,7 @@
 
 namespace Flarum\Api\Serializer;
 
-use Flarum\Core\Notification;
+use Flarum\Notification\Notification;
 use InvalidArgumentException;
 
 class NotificationSerializer extends AbstractSerializer
@@ -31,42 +32,46 @@ class NotificationSerializer extends AbstractSerializer
     /**
      * {@inheritdoc}
      *
-     * @param \Flarum\Core\Notification $notification
+     * @param \Flarum\Notification\Notification $notification
      * @throws InvalidArgumentException
      */
     protected function getDefaultAttributes($notification)
     {
         if (! ($notification instanceof Notification)) {
-            throw new InvalidArgumentException(get_class($this)
-                . ' can only serialize instances of ' . Notification::class);
+            throw new InvalidArgumentException(
+                get_class($this).' can only serialize instances of '.Notification::class
+            );
         }
 
         return [
             'id'          => (int) $notification->id,
             'contentType' => $notification->type,
             'content'     => $notification->data,
-            'time'        => $this->formatDate($notification->time),
-            'isRead'      => (bool) $notification->is_read
+            'createdAt'   => $this->formatDate($notification->created_at),
+            'isRead'      => (bool) $notification->read_at
         ];
     }
 
     /**
+     * @param Notification $notification
      * @return \Tobscure\JsonApi\Relationship
      */
     protected function user($notification)
     {
-        return $this->hasOne($notification, 'Flarum\Api\Serializer\UserBasicSerializer');
+        return $this->hasOne($notification, BasicUserSerializer::class);
     }
 
     /**
+     * @param Notification $notification
      * @return \Tobscure\JsonApi\Relationship
      */
-    protected function sender($notification)
+    protected function fromUser($notification)
     {
-        return $this->hasOne($notification, 'Flarum\Api\Serializer\UserBasicSerializer');
+        return $this->hasOne($notification, BasicUserSerializer::class);
     }
 
     /**
+     * @param Notification $notification
      * @return \Tobscure\JsonApi\Relationship
      */
     protected function subject($notification)

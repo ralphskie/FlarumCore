@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,16 +11,17 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Http\Controller\ControllerInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Zend\Diactoros\Response\EmptyResponse;
 
-abstract class AbstractDeleteController implements ControllerInterface
+abstract class AbstractDeleteController implements RequestHandlerInterface
 {
     /**
      * {@inheritdoc}
      */
-    public function handle(ServerRequestInterface $request)
+    public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $this->delete($request);
 

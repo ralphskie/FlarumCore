@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,8 +11,7 @@
 
 namespace Flarum\Event;
 
-use Flarum\Core\User;
-use Illuminate\Database\Eloquent\Model;
+use Flarum\User\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -20,11 +20,6 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class ScopeModelVisibility
 {
-    /**
-     * @var Model
-     */
-    public $model;
-
     /**
      * @var Builder
      */
@@ -36,14 +31,19 @@ class ScopeModelVisibility
     public $actor;
 
     /**
-     * @param Model $model
+     * @var string
+     */
+    public $ability;
+
+    /**
      * @param Builder $query
      * @param User $actor
+     * @param string $ability
      */
-    public function __construct(Model $model, Builder $query, User $actor)
+    public function __construct(Builder $query, User $actor, $ability)
     {
-        $this->model = $model;
         $this->query = $query;
         $this->actor = $actor;
+        $this->ability = $ability;
     }
 }

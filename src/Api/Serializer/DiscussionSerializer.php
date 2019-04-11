@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,18 +11,18 @@
 
 namespace Flarum\Api\Serializer;
 
-use Flarum\Core\Discussion;
-use Flarum\Core\Access\Gate;
+use Flarum\Discussion\Discussion;
+use Flarum\User\Gate;
 
-class DiscussionSerializer extends DiscussionBasicSerializer
+class DiscussionSerializer extends BasicDiscussionSerializer
 {
     /**
-     * @var Gate
+     * @var \Flarum\User\Gate
      */
     protected $gate;
 
     /**
-     * @param \Flarum\Core\Access\Gate $gate
+     * @param \Flarum\User\Gate $gate
      */
     public function __construct(Gate $gate)
     {
@@ -36,10 +37,10 @@ class DiscussionSerializer extends DiscussionBasicSerializer
         $gate = $this->gate->forUser($this->actor);
 
         $attributes = parent::getDefaultAttributes($discussion) + [
-            'commentsCount'     => (int) $discussion->comments_count,
-            'participantsCount' => (int) $discussion->participants_count,
-            'startTime'         => $this->formatDate($discussion->start_time),
-            'lastTime'          => $this->formatDate($discussion->last_time),
+            'commentCount'      => (int) $discussion->comment_count,
+            'participantCount'  => (int) $discussion->participant_count,
+            'createdAt'         => $this->formatDate($discussion->created_at),
+            'lastPostedAt'      => $this->formatDate($discussion->last_posted_at),
             'lastPostNumber'    => (int) $discussion->last_post_number,
             'canReply'          => $gate->allows('reply', $discussion),
             'canRename'         => $gate->allows('rename', $discussion),
@@ -47,28 +48,20 @@ class DiscussionSerializer extends DiscussionBasicSerializer
             'canHide'           => $gate->allows('hide', $discussion)
         ];
 
-        if ($discussion->hide_time) {
+        if ($discussion->hidden_at) {
             $attributes['isHidden'] = true;
-            $attributes['hideTime'] = $this->formatDate($discussion->hide_time);
+            $attributes['hiddenAt'] = $this->formatDate($discussion->hidden_at);
         }
 
         Discussion::setStateUser($this->actor);
 
         if ($state = $discussion->state) {
             $attributes += [
-                'readTime'   => $this->formatDate($state->read_time),
-                'readNumber' => (int) $state->read_number
+                'lastReadAt' => $this->formatDate($state->last_read_at),
+                'lastReadPostNumber' => (int) $state->last_read_post_number
             ];
         }
 
         return $attributes;
-    }
-
-    /**
-     * @return \Tobscure\JsonApi\Relationship
-     */
-    protected function hideUser($discussion)
-    {
-        return $this->hasOne($discussion, 'Flarum\Api\Serializer\UserSerializer');
     }
 }

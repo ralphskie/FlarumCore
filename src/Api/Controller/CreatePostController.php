@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,9 +11,10 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Command\PostReply;
-use Flarum\Core\Command\ReadDiscussion;
-use Flarum\Core\Post\Floodgate;
+use Flarum\Api\Serializer\PostSerializer;
+use Flarum\Discussion\Command\ReadDiscussion;
+use Flarum\Post\Command\PostReply;
+use Flarum\Post\Floodgate;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
@@ -22,7 +24,7 @@ class CreatePostController extends AbstractCreateController
     /**
      * {@inheritdoc}
      */
-    public $serializer = 'Flarum\Api\Serializer\PostSerializer';
+    public $serializer = PostSerializer::class;
 
     /**
      * {@inheritdoc}
@@ -31,7 +33,7 @@ class CreatePostController extends AbstractCreateController
         'user',
         'discussion',
         'discussion.posts',
-        'discussion.lastUser'
+        'discussion.lastPostedUser'
     ];
 
     /**
@@ -40,13 +42,13 @@ class CreatePostController extends AbstractCreateController
     protected $bus;
 
     /**
-     * @var Floodgate
+     * @var \Flarum\Post\Floodgate
      */
     protected $floodgate;
 
     /**
      * @param Dispatcher $bus
-     * @param Floodgate $floodgate
+     * @param \Flarum\Post\Floodgate $floodgate
      */
     public function __construct(Dispatcher $bus, Floodgate $floodgate)
     {
@@ -82,7 +84,7 @@ class CreatePostController extends AbstractCreateController
         }
 
         $discussion = $post->discussion;
-        $discussion->posts = $discussion->postsVisibleTo($actor)->orderBy('time')->lists('id');
+        $discussion->posts = $discussion->posts()->whereVisibleTo($actor)->orderBy('created_at')->pluck('id');
 
         return $post;
     }

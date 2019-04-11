@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,26 +11,29 @@
 
 namespace Flarum\Api\Serializer;
 
-use DateTime;
 use Closure;
-use Flarum\Core\User;
-use Flarum\Event\PrepareApiAttributes;
+use DateTime;
+use Flarum\Api\Event\Serializing;
 use Flarum\Event\GetApiRelationship;
+use Flarum\User\User;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
 use InvalidArgumentException;
 use LogicException;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use Tobscure\JsonApi\AbstractSerializer as BaseAbstractSerializer;
-use Flarum\Api\Relationship\HasOneBuilder;
-use Flarum\Api\Relationship\HasManyBuilder;
 use Tobscure\JsonApi\Collection;
 use Tobscure\JsonApi\Relationship;
-use Tobscure\JsonApi\Relationship\BuilderInterface;
 use Tobscure\JsonApi\Resource;
 use Tobscure\JsonApi\SerializerInterface;
 
 abstract class AbstractSerializer extends BaseAbstractSerializer
 {
+    /**
+     * @var Request
+     */
+    protected $request;
+
     /**
      * @var User
      */
@@ -46,19 +50,28 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
     protected static $container;
 
     /**
+     * @return Request
+     */
+    public function getRequest()
+    {
+        return $this->request;
+    }
+
+    /**
+     * @param Request $request
+     */
+    public function setRequest(Request $request)
+    {
+        $this->request = $request;
+        $this->actor = $request->getAttribute('actor');
+    }
+
+    /**
      * @return User
      */
     public function getActor()
     {
         return $this->actor;
-    }
-
-    /**
-     * @param User $actor
-     */
-    public function setActor(User $actor)
-    {
-        $this->actor = $actor;
     }
 
     /**
@@ -72,8 +85,8 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
 
         $attributes = $this->getDefaultAttributes($model);
 
-        static::$dispatcher->fire(
-            new PrepareApiAttributes($this, $model, $attributes)
+        static::$dispatcher->dispatch(
+            new Serializing($this, $model, $attributes)
         );
 
         return $attributes;
@@ -124,8 +137,9 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
         );
 
         if ($relationship && ! ($relationship instanceof Relationship)) {
-            throw new LogicException('GetApiRelationship handler must return an instance of '
-                . Relationship::class);
+            throw new LogicException(
+                'GetApiRelationship handler must return an instance of '.Relationship::class
+            );
         }
 
         return $relationship;
@@ -187,6 +201,7 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
 
     /**
      * @param mixed $model
+     * @param string $relation
      * @return mixed
      */
     protected function getRelationshipData($model, $relation)
@@ -231,7 +246,7 @@ abstract class AbstractSerializer extends BaseAbstractSerializer
     {
         $serializer = static::$container->make($class);
 
-        $serializer->setActor($this->actor);
+        $serializer->setRequest($this->request);
 
         return $serializer;
     }

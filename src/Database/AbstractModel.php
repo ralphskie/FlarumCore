@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -11,6 +12,7 @@
 namespace Flarum\Database;
 
 use Flarum\Event\ConfigureModelDates;
+use Flarum\Event\ConfigureModelDefaultAttributes;
 use Flarum\Event\GetModelRelationship;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -28,7 +30,7 @@ abstract class AbstractModel extends Eloquent
     /**
      * Indicates if the model should be timestamped. Turn off by default.
      *
-     * @var boolean
+     * @var bool
      */
     public $timestamps = false;
 
@@ -67,6 +69,22 @@ abstract class AbstractModel extends Eloquent
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function __construct(array $attributes = [])
+    {
+        $defaults = [];
+
+        static::$dispatcher->dispatch(
+            new ConfigureModelDefaultAttributes($this, $defaults)
+        );
+
+        $this->attributes = $defaults;
+
+        parent::__construct($attributes);
+    }
+
+    /**
      * Get the attributes that should be converted to dates.
      *
      * @return array
@@ -78,7 +96,7 @@ abstract class AbstractModel extends Eloquent
         $class = get_class($this);
 
         if (! isset($dates[$class])) {
-            static::$dispatcher->fire(
+            static::$dispatcher->dispatch(
                 new ConfigureModelDates($this, $this->dates)
             );
 
@@ -106,8 +124,9 @@ abstract class AbstractModel extends Eloquent
         // value on the "relationships" array.
         if (! $this->relationLoaded($key) && ($relation = $this->getCustomRelation($key))) {
             if (! $relation instanceof Relation) {
-                throw new LogicException('Relationship method must return an object of type '
-                    . 'Illuminate\Database\Eloquent\Relations\Relation');
+                throw new LogicException(
+                    'Relationship method must return an object of type '.Relation::class
+                );
             }
 
             return $this->relations[$key] = $relation->getResults();

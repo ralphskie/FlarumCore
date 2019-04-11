@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,66 +11,20 @@
 
 namespace Flarum\Admin\Middleware;
 
-use Exception;
-use Flarum\Core\Access\AssertPermissionTrait;
-use Flarum\Forum\Controller\LogInController;
-use Illuminate\Contracts\Container\Container;
-use Illuminate\Contracts\View\Factory;
+use Flarum\User\AssertPermissionTrait;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Zend\Diactoros\Response\HtmlResponse;
-use Zend\Diactoros\Response\RedirectResponse;
-use Zend\Stratigility\MiddlewareInterface;
+use Psr\Http\Server\MiddlewareInterface as Middleware;
+use Psr\Http\Server\RequestHandlerInterface as Handler;
 
-class RequireAdministrateAbility implements MiddlewareInterface
+class RequireAdministrateAbility implements Middleware
 {
     use AssertPermissionTrait;
 
-    /**
-     * @var LogInController
-     */
-    private $logInController;
-
-    /**
-     * @var Factory
-     */
-    private $view;
-
-    /**
-     * @param LogInController $logInController
-     * @param Factory $view
-     */
-    public function __construct(LogInController $logInController, Factory $view)
+    public function process(Request $request, Handler $handler): Response
     {
-        $this->logInController = $logInController;
-        $this->view = $view;
-    }
+        $this->assertAdmin($request->getAttribute('actor'));
 
-    /**
-     * {@inheritdoc}
-     */
-    public function __invoke(Request $request, Response $response, callable $out = null)
-    {
-        try {
-            $this->assertAdminAndSudo($request);
-        } catch (Exception $e) {
-            if ($request->getMethod() === 'POST') {
-                $response = $this->logInController->handle($request);
-
-                if ($response->getStatusCode() === 200) {
-                    return $response
-                        ->withStatus(302)
-                        ->withHeader('location', app('Flarum\Admin\UrlGenerator')->toRoute('index'));
-                }
-            }
-
-            return new HtmlResponse(
-                $this->view->make('flarum.admin::login')
-                    ->with('token', $request->getAttribute('session')->get('csrf_token'))
-                    ->render()
-            );
-        }
-
-        return $out ? $out($request, $response) : $response;
+        return $handler->handle($request);
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,12 +11,12 @@
 
 namespace Flarum\Api\Serializer;
 
-use Flarum\Core\Access\Gate;
+use Flarum\User\Gate;
 
-class UserSerializer extends UserBasicSerializer
+class UserSerializer extends BasicUserSerializer
 {
     /**
-     * @var Gate
+     * @var \Flarum\User\Gate
      */
     protected $gate;
 
@@ -28,7 +29,8 @@ class UserSerializer extends UserBasicSerializer
     }
 
     /**
-     * {@inheritdoc}
+     * @param \Flarum\User\User $user
+     * @return array
      */
     protected function getDefaultAttributes($user)
     {
@@ -39,24 +41,23 @@ class UserSerializer extends UserBasicSerializer
         $canEdit = $gate->allows('edit', $user);
 
         $attributes += [
-            'bio'              => $user->bio,
-            'joinTime'         => $this->formatDate($user->join_time),
-            'discussionsCount' => (int) $user->discussions_count,
-            'commentsCount'    => (int) $user->comments_count,
+            'joinTime'         => $this->formatDate($user->joined_at),
+            'discussionCount'  => (int) $user->discussion_count,
+            'commentCount'     => (int) $user->comment_count,
             'canEdit'          => $canEdit,
             'canDelete'        => $gate->allows('delete', $user),
         ];
 
-        if ($user->getPreference('discloseOnline')) {
+        if ($user->getPreference('discloseOnline') || $this->actor->can('viewLastSeenAt', $user)) {
             $attributes += [
-                'lastSeenTime' => $this->formatDate($user->last_seen_time)
+                'lastSeenAt' => $this->formatDate($user->last_seen_at)
             ];
         }
 
         if ($canEdit || $this->actor->id === $user->id) {
             $attributes += [
-                'isActivated' => $user->is_activated,
-                'email'       => $user->email
+                'isEmailConfirmed' => (bool) $user->is_email_confirmed,
+                'email'            => $user->email
             ];
         }
 

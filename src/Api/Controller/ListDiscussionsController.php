@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,42 +11,43 @@
 
 namespace Flarum\Api\Controller;
 
-use Flarum\Core\Search\SearchCriteria;
-use Flarum\Core\Search\Discussion\DiscussionSearcher;
-use Flarum\Api\UrlGenerator;
+use Flarum\Api\Serializer\DiscussionSerializer;
+use Flarum\Discussion\Discussion;
+use Flarum\Discussion\Search\DiscussionSearcher;
+use Flarum\Http\UrlGenerator;
+use Flarum\Search\SearchCriteria;
 use Psr\Http\Message\ServerRequestInterface;
 use Tobscure\JsonApi\Document;
 
-class ListDiscussionsController extends AbstractCollectionController
+class ListDiscussionsController extends AbstractListController
 {
     /**
      * {@inheritdoc}
      */
-    public $serializer = 'Flarum\Api\Serializer\DiscussionSerializer';
+    public $serializer = DiscussionSerializer::class;
 
     /**
      * {@inheritdoc}
      */
     public $include = [
-        'startUser',
-        'lastUser',
-        'relevantPosts',
-        'relevantPosts.discussion',
-        'relevantPosts.user'
+        'user',
+        'lastPostedUser',
+        'mostRelevantPost',
+        'mostRelevantPost.user'
     ];
 
     /**
      * {@inheritdoc}
      */
     public $optionalInclude = [
-        'startPost',
+        'firstPost',
         'lastPost'
     ];
 
     /**
      * {@inheritdoc}
      */
-    public $sortFields = ['lastTime', 'commentsCount', 'startTime'];
+    public $sortFields = ['lastPostedAt', 'commentCount', 'createdAt'];
 
     /**
      * @var DiscussionSearcher
@@ -82,16 +84,30 @@ class ListDiscussionsController extends AbstractCollectionController
         $offset = $this->extractOffset($request);
         $load = array_merge($this->extractInclude($request), ['state']);
 
-        $results = $this->searcher->search($criteria, $limit, $offset, $load);
+        $results = $this->searcher->search($criteria, $limit, $offset);
 
         $document->addPaginationLinks(
-            $this->url->toRoute('discussions.index'),
+            $this->url->to('api')->route('discussions.index'),
             $request->getQueryParams(),
             $offset,
             $limit,
             $results->areMoreResults() ? null : 0
         );
 
-        return $results->getResults();
+        Discussion::setStateUser($actor);
+
+        $results = $results->getResults()->load($load);
+
+        if ($relations = array_intersect($load, ['firstPost', 'lastPost'])) {
+            foreach ($results as $discussion) {
+                foreach ($relations as $relation) {
+                    if ($discussion->$relation) {
+                        $discussion->$relation->discussion = $discussion;
+                    }
+                }
+            }
+        }
+
+        return $results;
     }
 }

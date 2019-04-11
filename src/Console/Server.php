@@ -11,34 +11,41 @@
 
 namespace Flarum\Console;
 
-use Flarum\Foundation\AbstractServer;
-use Symfony\Component\Console\Application;
+use Flarum\Console\Event\Configuring;
+use Flarum\Foundation\Application;
+use Flarum\Foundation\SiteInterface;
+use Illuminate\Contracts\Events\Dispatcher;
+use Symfony\Component\Console\Application as ConsoleApplication;
 
-class Server extends AbstractServer
+class Server
 {
+    private $site;
+
+    public function __construct(SiteInterface $site)
+    {
+        $this->site = $site;
+    }
+
     public function listen()
     {
-        $console = $this->getConsoleApplication();
+        $app = $this->site->bootApp();
+
+        $console = new ConsoleApplication('Flarum', Application::VERSION);
+
+        foreach ($app->getConsoleCommands() as $command) {
+            $console->add($command);
+        }
+
+        $this->extend($console);
 
         exit($console->run());
     }
 
-    /**
-     * @return Application
-     */
-    protected function getConsoleApplication()
+    private function extend(ConsoleApplication $console)
     {
-        $app = $this->getApp();
+        $app = Application::getInstance();
 
-        $console = new Application('Flarum', $app->version());
-
-        $app->register('Flarum\Install\InstallServiceProvider');
-
-        $console->add($app->make('Flarum\Install\Console\InstallCommand'));
-        $console->add($app->make('Flarum\Update\Console\MigrateCommand'));
-        $console->add($app->make('Flarum\Console\Command\GenerateExtensionCommand'));
-        $console->add($app->make('Flarum\Console\Command\GenerateMigrationCommand'));
-
-        return $console;
+        $events = $app->make(Dispatcher::class);
+        $events->fire(new Configuring($app, $console));
     }
 }

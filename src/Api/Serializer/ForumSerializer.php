@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -11,7 +12,7 @@
 namespace Flarum\Api\Serializer;
 
 use Flarum\Foundation\Application;
-use Flarum\Core\Access\Gate;
+use Flarum\Http\UrlGenerator;
 use Flarum\Settings\SettingsRepositoryInterface;
 
 class ForumSerializer extends AbstractSerializer
@@ -20,11 +21,6 @@ class ForumSerializer extends AbstractSerializer
      * {@inheritdoc}
      */
     protected $type = 'forums';
-
-    /**
-     * @var Gate
-     */
-    protected $gate;
 
     /**
      * @var Application
@@ -37,15 +33,20 @@ class ForumSerializer extends AbstractSerializer
     protected $settings;
 
     /**
-     * @param Gate $gate
+     * @var UrlGenerator
+     */
+    protected $url;
+
+    /**
      * @param Application $app
      * @param SettingsRepositoryInterface $settings
+     * @param UrlGenerator $url
      */
-    public function __construct(Gate $gate, Application $app, SettingsRepositoryInterface $settings)
+    public function __construct(Application $app, SettingsRepositoryInterface $settings, UrlGenerator $url)
     {
-        $this->gate = $gate;
         $this->app = $app;
         $this->settings = $settings;
+        $this->url = $url;
     }
 
     /**
@@ -61,25 +62,30 @@ class ForumSerializer extends AbstractSerializer
      */
     protected function getDefaultAttributes($model)
     {
-        $gate = $this->gate->forUser($this->actor);
-
         $attributes = [
-            'title'              => $this->settings->get('forum_title'),
-            'description'        => $this->settings->get('forum_description'),
-            'baseUrl'            => $url = $this->app->url(),
-            'basePath'           => parse_url($url, PHP_URL_PATH) ?: '',
-            'debug'              => $this->app->inDebugMode(),
-            'apiUrl'             => $this->app->url('api'),
-            'welcomeTitle'       => $this->settings->get('welcome_title'),
-            'welcomeMessage'     => $this->settings->get('welcome_message'),
-            'themePrimaryColor'  => $this->settings->get('theme_primary_color'),
-            'allowSignUp'        => (bool) $this->settings->get('allow_sign_up'),
-            'defaultRoute'       => $this->settings->get('default_route'),
-            'canViewDiscussions' => $gate->allows('viewDiscussions') || $this->actor->hasPermissionLike('viewDiscussions'),
-            'canStartDiscussion' => $gate->allows('startDiscussion') || $this->actor->hasPermissionLike('startDiscussion')
+            'title' => $this->settings->get('forum_title'),
+            'description' => $this->settings->get('forum_description'),
+            'showLanguageSelector' => (bool) $this->settings->get('show_language_selector', true),
+            'baseUrl' => $url = $this->app->url(),
+            'basePath' => parse_url($url, PHP_URL_PATH) ?: '',
+            'debug' => $this->app->inDebugMode(),
+            'apiUrl' => $this->app->url('api'),
+            'welcomeTitle' => $this->settings->get('welcome_title'),
+            'welcomeMessage' => $this->settings->get('welcome_message'),
+            'themePrimaryColor' => $this->settings->get('theme_primary_color'),
+            'themeSecondaryColor' => $this->settings->get('theme_secondary_color'),
+            'logoUrl' => $this->getLogoUrl(),
+            'faviconUrl' => $this->getFaviconUrl(),
+            'headerHtml' => $this->settings->get('custom_header'),
+            'footerHtml' => $this->settings->get('custom_footer'),
+            'allowSignUp' => (bool) $this->settings->get('allow_sign_up'),
+            'defaultRoute'  => $this->settings->get('default_route'),
+            'canViewDiscussions' => $this->actor->can('viewDiscussions'),
+            'canStartDiscussion' => $this->actor->can('startDiscussion'),
+            'canViewUserList' => $this->actor->can('viewUserList')
         ];
 
-        if ($gate->allows('administrate')) {
+        if ($this->actor->can('administrate')) {
             $attributes['adminUrl'] = $this->app->url('admin');
             $attributes['version'] = $this->app->version();
         }
@@ -92,6 +98,26 @@ class ForumSerializer extends AbstractSerializer
      */
     protected function groups($model)
     {
-        return $this->hasMany($model, 'Flarum\Api\Serializer\GroupSerializer');
+        return $this->hasMany($model, GroupSerializer::class);
+    }
+
+    /**
+     * @return null|string
+     */
+    protected function getLogoUrl()
+    {
+        $logoPath = $this->settings->get('logo_path');
+
+        return $logoPath ? $this->url->to('forum')->path('assets/'.$logoPath) : null;
+    }
+
+    /**
+     * @return null|string
+     */
+    protected function getFaviconUrl()
+    {
+        $faviconPath = $this->settings->get('favicon_path');
+
+        return $faviconPath ? $this->url->to('forum')->path('assets/'.$faviconPath) : null;
     }
 }

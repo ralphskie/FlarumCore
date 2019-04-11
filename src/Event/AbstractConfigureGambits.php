@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,7 +11,7 @@
 
 namespace Flarum\Event;
 
-use Flarum\Core\Search\GambitManager;
+use Flarum\Search\GambitManager;
 
 abstract class AbstractConfigureGambits
 {
@@ -20,7 +21,7 @@ abstract class AbstractConfigureGambits
     public $gambits;
 
     /**
-     * @param GambitManager $gambits
+     * @param \Flarum\Search\GambitManager $gambits
      */
     public function __construct(GambitManager $gambits)
     {

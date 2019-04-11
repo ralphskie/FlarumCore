@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,7 +11,9 @@
 
 namespace Flarum\Extension;
 
+use Flarum\Extension\Event\Disabling;
 use Flarum\Foundation\AbstractServiceProvider;
+use Illuminate\Contracts\Container\Container;
 
 class ExtensionServiceProvider extends AbstractServiceProvider
 {
@@ -19,17 +22,26 @@ class ExtensionServiceProvider extends AbstractServiceProvider
      */
     public function register()
     {
-        $this->app->bind('flarum.extensions', 'Flarum\Extension\ExtensionManager');
+        $this->app->singleton(ExtensionManager::class);
+        $this->app->alias(ExtensionManager::class, 'flarum.extensions');
 
-        $config = $this->app->make('flarum.settings')->get('extensions_enabled');
-        $extensions = json_decode($config, true);
+        // Boot extensions when the app is booting. This must be done as a boot
+        // listener on the app rather than in the service provider's boot method
+        // below, so that extensions have a chance to register things on the
+        // container before the core boots up (and starts resolving services).
+        $this->app->booting(function (Container $app) {
+            $app->make('flarum.extensions')->extend($app);
+        });
+    }
 
-        foreach ($extensions as $extension) {
-            if (file_exists($file = public_path().'/extensions/'.$extension.'/bootstrap.php')) {
-                $bootstrapper = require $file;
-
-                $this->app->call($bootstrapper);
-            }
-        }
+    /**
+     * {@inheritdoc}
+     */
+    public function boot()
+    {
+        $this->app->make('events')->listen(
+            Disabling::class,
+            DefaultLanguagePackGuard::class
+        );
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,10 +11,11 @@
 
 namespace Flarum\Locale;
 
+use Illuminate\Contracts\Translation\Translator as TranslatorContract;
 use Symfony\Component\Translation\MessageCatalogueInterface;
 use Symfony\Component\Translation\Translator as BaseTranslator;
 
-class Translator extends BaseTranslator
+class Translator extends BaseTranslator implements TranslatorContract
 {
     const REFERENCE_REGEX = '/^=>\s*([a-z0-9_\-\.]+)$/i';
 
@@ -28,7 +30,7 @@ class Translator extends BaseTranslator
             $this->assertValidLocale($locale);
         }
 
-        $parse = !isset($this->catalogues[$locale]);
+        $parse = ! isset($this->catalogues[$locale]);
 
         $catalogue = parent::getCatalogue($locale);
 

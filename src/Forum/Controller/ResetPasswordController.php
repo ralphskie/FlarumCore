@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,12 +11,12 @@
 
 namespace Flarum\Forum\Controller;
 
-use Flarum\Core\PasswordToken;
-use Flarum\Http\Controller\AbstractHtmlController;
-use Flarum\Core\Exception\InvalidConfirmationTokenException;
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Illuminate\Contracts\View\Factory;
 use DateTime;
+use Flarum\Http\Controller\AbstractHtmlController;
+use Flarum\User\Exception\InvalidConfirmationTokenException;
+use Flarum\User\PasswordToken;
+use Illuminate\Contracts\View\Factory;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ResetPasswordController extends AbstractHtmlController
 {
@@ -35,7 +36,7 @@ class ResetPasswordController extends AbstractHtmlController
     /**
      * @param Request $request
      * @return \Illuminate\Contracts\View\View
-     * @throws InvalidConfirmationTokenException
+     * @throws \Flarum\User\Exception\InvalidConfirmationTokenException
      */
     public function render(Request $request)
     {
@@ -47,8 +48,8 @@ class ResetPasswordController extends AbstractHtmlController
             throw new InvalidConfirmationTokenException;
         }
 
-        return $this->view->make('flarum::reset')
-            ->with('passwordToken', $token->id)
-            ->with('csrfToken', $request->getAttribute('session')->get('csrf_token'));
+        return $this->view->make('flarum.forum::reset-password')
+            ->with('passwordToken', $token->token)
+            ->with('csrfToken', $request->getAttribute('session')->token());
     }
 }

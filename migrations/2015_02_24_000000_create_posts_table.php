@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -8,16 +9,14 @@
  * file that was distributed with this source code.
  */
 
-namespace Flarum\Core\Migration;
-
-use Flarum\Database\AbstractMigration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Schema\Builder;
 
-class CreatePostsTable extends AbstractMigration
-{
-    public function up()
-    {
-        $this->schema->create('posts', function (Blueprint $table) {
+// We need a full custom migration here, because we need to add the fulltext
+// index for the content with a raw SQL statement after creating the table.
+return [
+    'up' => function (Builder $schema) {
+        $schema->create('posts', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('discussion_id')->unsigned();
             $table->integer('number')->unsigned()->nullable();
@@ -37,12 +36,12 @@ class CreatePostsTable extends AbstractMigration
             $table->engine = 'MyISAM';
         });
 
-        $prefix = $this->schema->getConnection()->getTablePrefix();
-        $this->schema->getConnection()->statement('ALTER TABLE '.$prefix.'posts ADD FULLTEXT content (content)');
-    }
+        $connection = $schema->getConnection();
+        $prefix = $connection->getTablePrefix();
+        $connection->statement('ALTER TABLE '.$prefix.'posts ADD FULLTEXT content (content)');
+    },
 
-    public function down()
-    {
-        $this->schema->drop('posts');
+    'down' => function (Builder $schema) {
+        $schema->drop('posts');
     }
-}
+];

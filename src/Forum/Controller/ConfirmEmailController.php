@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,17 +11,18 @@
 
 namespace Flarum\Forum\Controller;
 
-use Flarum\Core\Command\ConfirmEmail;
-use Flarum\Core\Exception\InvalidConfirmationTokenException;
 use Flarum\Foundation\Application;
-use Flarum\Http\Controller\ControllerInterface;
 use Flarum\Http\SessionAuthenticator;
+use Flarum\User\Command\ConfirmEmail;
+use Flarum\User\Exception\InvalidConfirmationTokenException;
 use Illuminate\Contracts\Bus\Dispatcher;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface;
 use Zend\Diactoros\Response\HtmlResponse;
 use Zend\Diactoros\Response\RedirectResponse;
 
-class ConfirmEmailController implements ControllerInterface
+class ConfirmEmailController implements RequestHandlerInterface
 {
     /**
      * @var Dispatcher
@@ -51,9 +53,9 @@ class ConfirmEmailController implements ControllerInterface
 
     /**
      * @param Request $request
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return ResponseInterface
      */
-    public function handle(Request $request)
+    public function handle(Request $request): ResponseInterface
     {
         try {
             $token = array_get($request->getQueryParams(), 'token');

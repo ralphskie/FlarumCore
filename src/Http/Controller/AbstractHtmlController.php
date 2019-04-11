@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This file is part of Flarum.
  *
@@ -10,29 +11,32 @@
 
 namespace Flarum\Http\Controller;
 
-use Flarum\Http\Controller\ControllerInterface;
+use Illuminate\Contracts\Support\Renderable;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Zend\Diactoros\Response;
+use Psr\Http\Server\RequestHandlerInterface;
+use Zend\Diactoros\Response\HtmlResponse;
 
-abstract class AbstractHtmlController implements ControllerInterface
+abstract class AbstractHtmlController implements RequestHandlerInterface
 {
     /**
      * @param Request $request
-     * @return \Zend\Diactoros\Response
+     * @return HtmlResponse
      */
-    public function handle(Request $request)
+    public function handle(Request $request): ResponseInterface
     {
         $view = $this->render($request);
 
-        $response = new Response;
-        $response->getBody()->write($view->render());
+        if ($view instanceof Renderable) {
+            $view = $view->render();
+        }
 
-        return $response;
+        return new HtmlResponse($view);
     }
 
     /**
      * @param Request $request
-     * @return \Illuminate\Contracts\Support\Renderable
+     * @return string|Renderable
      */
     abstract protected function render(Request $request);
 }
